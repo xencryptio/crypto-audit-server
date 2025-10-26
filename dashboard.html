@@ -1,0 +1,1010 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crypto Audit Dashboard - Agent & Admin</title>
+    <style>
+        :root {
+            --primary-color: #007bff;
+            --secondary-color: #6c757d;
+            --success-color: #28a745;
+            --danger-color: #dc3545;
+            --warning-color: #ffc107;
+            --bg-light: #f4f7f6;
+            --bg-card: #ffffff;
+            --border-color: #ddd;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: var(--bg-light);
+            color: #333;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: auto;
+            background-color: var(--bg-card);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.15);
+        }
+
+        h1 {
+            color: var(--primary-color);
+            border-bottom: 3px solid var(--primary-color);
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .stat-card {
+            background: linear-gradient(135deg, var(--primary-color), #0056b3);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .stat-card.success { background: linear-gradient(135deg, var(--success-color), #1e7e34); }
+        .stat-card.danger { background: linear-gradient(135deg, var(--danger-color), #bd2130); }
+        .stat-card.warning { background: linear-gradient(135deg, var(--warning-color), #e0a800); color: #333; }
+        .stat-number {
+            font-size: 36px;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        .stat-label {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .tabs {
+            display: flex;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 20px;
+        }
+        .tab-button {
+            background-color: transparent;
+            border: none;
+            padding: 12px 20px;
+            cursor: pointer;
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--secondary-color);
+            transition: all 0.3s ease;
+            border-bottom: 3px solid transparent;
+        }
+        .tab-button:hover {
+            color: var(--primary-color);
+        }
+        .tab-button.active {
+            color: var(--primary-color);
+            border-bottom: 3px solid var(--primary-color);
+            background-color: var(--bg-card);
+        }
+        .tab-content {
+            display: none;
+            padding: 10px 0;
+        }
+        .tab-content.active {
+            display: block;
+        }
+
+        .card {
+            background-color: var(--bg-light);
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        
+        .card h3 {
+            color: var(--success-color);
+            border-bottom: 2px solid var(--success-color);
+            padding-bottom: 5px;
+            margin-top: 0;
+        }
+        .card ol {
+            padding-left: 25px;
+        }
+        .card li {
+            margin-bottom: 10px;
+        }
+        .card code {
+            background-color: #e9ecef;
+            padding: 2px 5px;
+            border-radius: 3px;
+            font-family: monospace;
+            color: var(--danger-color);
+        }
+        .card ul {
+            list-style-type: none;
+            padding-left: 20px;
+        }
+        .card ul li::before {
+            content: "•";
+            color: var(--primary-color);
+            font-weight: bold;
+            display: inline-block;
+            width: 1em;
+            margin-left: -1em;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #555;
+        }
+        .form-group input[type="text"], 
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 5px;
+            box-sizing: border-box;
+            font-size: 14px;
+        }
+        .form-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        button {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: 600;
+            transition: background-color 0.3s ease;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .btn-success { background-color: var(--success-color); }
+        .btn-success:hover { background-color: #1e7e34; }
+        .btn-danger { background-color: var(--danger-color); }
+        .btn-danger:hover { background-color: #bd2130; }
+        .btn-small { padding: 5px 10px; font-size: 13px; }
+
+        #status-message {
+            padding: 15px;
+            border-radius: 5px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            display: none;
+        }
+        .msg-success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .msg-error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .msg-info { background-color: #cce5ff; color: #004085; border: 1px solid #b8daff; }
+
+        .data-container { margin-top: 15px; }
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        .data-table th, .data-table td {
+            border: 1px solid var(--border-color);
+            padding: 12px;
+            text-align: left;
+            font-size: 14px;
+        }
+        .data-table th {
+            background-color: var(--primary-color);
+            color: white;
+            text-transform: uppercase;
+        }
+        .data-table tr:nth-child(even) {
+            background-color: var(--bg-light);
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-weight: 600;
+            font-size: 12px;
+        }
+        .status-pending { background-color: #ffc107; color: #333; }
+        .status-in_progress { background-color: #17a2b8; color: white; }
+        .status-completed { background-color: var(--success-color); color: white; }
+        .status-active { background-color: var(--success-color); color: white; }
+        .status-inactive { background-color: var(--danger-color); color: white; }
+
+        .time-indicator {
+            font-size: 12px;
+            color: #666;
+            font-style: italic;
+        }
+        .time-indicator.recent { color: var(--success-color); font-weight: 600; }
+        .time-indicator.stale { color: var(--danger-color); font-weight: 600; }
+
+        .json-viewer {
+            background-color: #272822;
+            color: #f8f8f2;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-family: Consolas, monospace;
+            font-size: 12px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .refresh-indicator {
+            display: inline-block;
+            padding: 5px 10px;
+            background-color: var(--success-color);
+            color: white;
+            border-radius: 5px;
+            font-size: 12px;
+            margin-left: 10px;
+        }
+        .refresh-indicator.disabled {
+            background-color: var(--secondary-color);
+        }
+
+        /* Nested Results Styles */
+        .nested-results-row {
+            background-color: #f9f9f9;
+        }
+        .nested-results-container {
+            padding: 15px;
+            background-color: white;
+            border-left: 4px solid var(--primary-color);
+            margin: 10px 0;
+        }
+        .result-item {
+            border: 1px solid var(--border-color);
+            border-radius: 5px;
+            margin-bottom: 10px;
+            background-color: var(--bg-light);
+        }
+        .result-header {
+            padding: 10px 15px;
+            background-color: var(--primary-color);
+            color: white;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-radius: 5px 5px 0 0;
+        }
+        .result-header:hover {
+            background-color: #0056b3;
+        }
+        .result-body {
+            display: none;
+            padding: 15px;
+            background-color: white;
+        }
+        .result-body.expanded {
+            display: block;
+        }
+        .toggle-icon {
+            transition: transform 0.3s;
+        }
+        .toggle-icon.expanded {
+            transform: rotate(90deg);
+        }
+        .no-results-msg {
+            padding: 10px;
+            color: #666;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>
+            Crypto Audit Dashboard 
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <small style="font-size: 14px; font-weight: normal;">API: <span id="api-base-url"></span></small>
+                <span id="refresh-indicator" class="refresh-indicator">Auto-refresh: ON</span>
+            </div>
+        </h1>
+
+        <div id="status-message" class="msg-info"></div>
+
+        <div class="tabs">
+            <button class="tab-button active" onclick="openTab('admin-view')">Admin Dashboard</button>
+            <button class="tab-button" onclick="openTab('downloads-view')">Agent Downloads</button>
+            <button class="tab-button" onclick="openTab('documentation-view')">Documentation</button> 
+        </div>
+
+        <div class="stats-grid" id="stats-dashboard">
+            <div class="stat-card">
+                <div class="stat-label">Total Agents</div>
+                <div class="stat-number" id="stat-total-agents">0</div>
+            </div>
+            <div class="stat-card success">
+                <div class="stat-label">Active Agents</div>
+                <div class="stat-number" id="stat-active-agents">0</div>
+            </div>
+            <div class="stat-card danger">
+                <div class="stat-label">Inactive Agents</div>
+                <div class="stat-number" id="stat-inactive-agents">0</div>
+            </div>
+            <div class="stat-card warning">
+                <div class="stat-label">Pending Tasks</div>
+                <div class="stat-number" id="stat-pending-tasks">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Total Results</div>
+                <div class="stat-number" id="stat-total-results">0</div>
+            </div>
+        </div>
+
+        <div id="downloads-view" class="tab-content">
+            <div class="card">
+                <h2>Agent Downloads</h2>
+                <p>Download the agent files for your operating system. Extract and run the agent to connect to the audit system.</p>
+                
+                <div class="form-actions">
+                    <button class="btn-success" onclick="loadDownloadFiles()">🔄 Refresh File List</button>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>🐧 Linux Agent</h2>
+                <div class="form-actions" style="margin-bottom: 10px;">
+                    <button class="btn-success" onclick="downloadFolderAsZip('linux')">📦 Download All as ZIP</button>
+                </div>
+                <div class="data-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>File Name</th>
+                                <th>Size</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="linux-files-table">
+                            <tr><td colspan="3">Click 'Refresh File List' to load files.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>🪟 Windows Agent</h2>
+                <div class="form-actions" style="margin-bottom: 10px;">
+                    <button class="btn-success" onclick="downloadFolderAsZip('windows')">📦 Download All as ZIP</button>
+                </div>
+                <div class="data-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>File Name</th>
+                                <th>Size</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="windows-files-table">
+                            <tr><td colspan="3">Click 'Refresh File List' to load files.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div id="admin-view" class="tab-content active">
+            
+            <div class="card">
+                <h2>Management Actions</h2>
+                <div class="form-actions">
+                    <button class="btn-success" onclick="refreshAllData()">🔄 Refresh All Data</button>
+                    <button class="btn-success" onclick="listAgents()">Refresh Agents</button>
+                    <button class="btn-success" onclick="listTasks()">Refresh Tasks</button>
+                    <button onclick="toggleAutoRefresh()" id="auto-refresh-btn">⏸️ Pause Auto-Refresh</button>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>Registered Agents with Audit Results (Admin)</h2>
+                <div class="data-container">
+                    <p id="agents-count">Total Agents: 0 | Active: 0 | Inactive: 0 | Timeout: 5 minutes</p>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>▶</th>
+                                <th>Agent ID</th>
+                                <th>Hostname</th>
+                                <th>IP Address</th>
+                                <th>OS Info</th>
+                                <th>Last Seen</th>
+                                <th>Time Since Contact</th>
+                                <th>Status</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="agents-table-body">
+                            <tr><td colspan="9">Click 'Refresh Agents' to load data.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>Scan Tasks (Admin)</h2>
+                <div class="data-container">
+                    <p id="tasks-count">Total Tasks: 0</p>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Task ID</th>
+                                <th>Agent ID</th>
+                                <th>Status</th>
+                                <th>Created At</th>
+                                <th>Started At</th>
+                                <th>Completed At</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tasks-table-body">
+                            <tr><td colspan="6">Click 'Refresh Tasks' to load data.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="card" id="detail-viewer" style="display: none;">
+                <h2>Detail Viewer</h2>
+                <button class="btn-danger" onclick="document.getElementById('detail-viewer').style.display = 'none'">Close Detail</button>
+                <p>Loading details for: <strong id="detail-id-label"></strong></p>
+                <pre id="detail-json-output" class="json-viewer"></pre>
+            </div>
+        </div>
+
+        <div id="documentation-view" class="tab-content">
+            <div class="card">
+                <h2>Agent Setup and Management Documentation</h2>
+                <p>Detailed instructions on how to set up and manage the Crypto Audit Agents for Linux and Windows operating systems.</p>
+            </div>
+
+            <div class="card">
+                <h3>🐧 Section 1: Linux Agent Setup</h3>
+                <ol>
+                    <li>Go to the **Agent Downloads** tab.</li>
+                    <li>Under **Linux Agent**, click on the <code style="color: var(--primary-color);">📦 Download All as ZIP</code> button.</li>
+                    <li>Navigate to your downloads directory and open a terminal there.</li>
+                    <li>Unzip the downloaded file using the command: <code>unzip Linux_Agent.zip</code></li>
+                    <li>Verify the presence of the following files after extraction:
+                        <ul>
+                            <li><code>crypto-agent.service</code></li>
+                            <li><code>crypto_agent_service.py</code></li>
+                            <li><code>install_crypto_agent.sh</code></li>
+                            <li><code>linux_server.py</code></li>
+                            <li><code>uninstall_crypto_agent.sh</code></li>
+                        </ul>
+                    </li>
+                    <li>Make the installation script executable: <code>chmod +x install_crypto_agent.sh</code></li>
+                    <li>Run the installation script with elevated privileges (sudo) to start the agent: <code>sudo ./install_crypto_agent.sh</code></li>
+                </ol>
+                <p><strong>To Uninstall the Linux Agent:</strong></p>
+                <ol start="8">
+                    <li>Make the uninstallation script executable: <code>chmod +x uninstall_crypto_agent.sh</code></li>
+                    <li>Run the uninstallation script with elevated privileges (sudo): <code>sudo ./uninstall_crypto_agent.sh</code></li>
+                </ol>
+            </div>
+
+            <div class="card">
+                <h3>🪟 Section 2: Windows Agent Setup</h3>
+                <ol>
+                    <li>Go to the **Agent Downloads** tab.</li>
+                    <li>Under **Windows Agent**, click on the <code style="color: var(--primary-color);">📦 Download All as ZIP</code> button.</li>
+                    <li>Navigate to your downloads directory and extract the ZIP file.</li>
+                    <li>Verify the presence of the following files after extraction:
+                        <ul>
+                            <li><code>build_executables.bat</code></li>
+                            <li><code>config_editor.py</code></li>
+                            <li><code>crypto_agent_service_windows.py</code></li>
+                            <li><code>install.py</code></li>
+                            <li><code>quick_config.bat</code></li>
+                            <li><code>uninstall.py</code></li>
+                            <li><code>windows_audit.py</code></li>
+                        </ul>
+                    </li>
+                    <li>Open **Command Prompt (CMD)** or **PowerShell** in the extracted directory and run the installation script to set up the agent service: <code>python install.py</code> or just <code>install.py</code></li>
+                </ol>
+                <p><strong>To Remove the Windows Agent:</strong></p>
+                <ol start="6">
+                    <li>In Command Prompt or PowerShell, run the uninstallation script: <code>python uninstall.py</code> or just <code>uninstall.py</code></li>
+                </ol>
+            </div>
+        </div>
+        
+    </div>
+
+    <script>
+        // --- JS CONSTANTS ---
+        const SUCCESS_COLOR = "#28a745"; 
+        const DANGER_COLOR = "#dc3545";  
+        
+        const API_HOST = "";
+        const BASE_URL = `${API_HOST}/api/v1`;
+
+        let autoRefreshInterval = null;
+        const AUTO_REFRESH_INTERVAL = 10000;
+
+        document.getElementById('api-base-url').textContent = window.location.origin;
+
+        /**
+         * Tab Navigation Logic
+         */
+        function openTab(tabName) {
+            const contents = document.getElementsByClassName("tab-content");
+            for (let i = 0; i < contents.length; i++) {
+                contents[i].classList.remove('active');
+            }
+            const buttons = document.getElementsByClassName("tab-button");
+            for (let i = 0; i < buttons.length; i++) {
+                buttons[i].classList.remove('active');
+            }
+            document.getElementById(tabName).classList.add('active');
+            
+            const tabNames = {
+                'admin-view': 'Admin Dashboard',
+                'downloads-view': 'Agent Downloads',
+                'documentation-view': 'Documentation'
+            };
+            const currentTabText = tabNames[tabName];
+            for (let i = 0; i < buttons.length; i++) {
+                if (buttons[i].textContent === currentTabText) {
+                    buttons[i].classList.add('active');
+                    break;
+                }
+            }
+        }
+        
+        /**
+         * Generic Status/Message Display
+         */
+        function displayMessage(type, text) {
+            const msgElement = document.getElementById('status-message');
+            msgElement.textContent = text;
+            msgElement.className = `msg-info ${type}`;
+            msgElement.style.display = 'block';
+            
+            if (type !== 'msg-error') {
+                setTimeout(() => msgElement.style.display = 'none', 5000);
+            }
+        }
+        
+        /**
+         * Helper to render status badge
+         */
+        function renderStatusBadge(status) {
+            const sanitizedStatus = status.toLowerCase().replace(/ /g, '_');
+            return `<span class="status-badge status-${sanitizedStatus}">${status.toUpperCase()}</span>`;
+        }
+
+        /**
+         * Format time since last seen
+         */
+        function formatTimeSince(minutes) {
+            if (minutes < 1) return '<1 min ago';
+            if (minutes === 1) return '1 min ago';
+            if (minutes < 60) return `${minutes} mins ago`;
+            const hours = Math.floor(minutes / 60);
+            if (hours === 1) return '1 hour ago';
+            if (hours < 24) return `${hours} hours ago`;
+            const days = Math.floor(hours / 24);
+            return `${days} day${days > 1 ? 's' : ''} ago`;
+        }
+
+        /**
+         * Generic Fetch Utility
+         */
+        async function apiFetch(endpoint, method = 'GET', body = null, silent = false) {
+            const url = BASE_URL + endpoint; 
+            const options = {
+                method: method,
+                headers: { 'Content-Type': 'application/json' },
+            };
+
+            if (body) {
+                options.body = JSON.stringify(body);
+            }
+
+            try {
+                const response = await fetch(url, options);
+                let data;
+                try {
+                    data = await response.json();
+                } catch (e) {
+                    data = { detail: 'Empty or non-JSON response body (Status: ' + response.status + ').' };
+                }
+
+                if (!response.ok) {
+                    throw new Error(data.detail || `HTTP error! Status: ${response.status}`);
+                }
+                
+                if (!silent) {
+                    displayMessage('msg-success', `Request to ${endpoint} successful.`);
+                }
+                return data;
+            } catch (error) {
+                console.error('API Error:', error);
+                if (!silent) {
+                    displayMessage('msg-error', `API Error for ${endpoint}: ${error.message}. Check browser console for network details.`);
+                }
+                return null;
+            }
+        }
+
+        // --- Admin Dashboard Functions ---
+
+        async function triggerScan(agentId) {
+            const data = await apiFetch(`/admin/trigger-scan/${agentId}`, 'POST');
+            if (data) {
+                displayMessage('msg-info', `Scan triggered for agent ${agentId}. Task ID: ${data.task_id}. Agent Status: ${data.agent_status}`);
+            }
+            setTimeout(() => listTasks(), 500);
+        }
+
+        async function loadStats() {
+            const data = await apiFetch('/admin/stats', 'GET', null, true);
+            if (data && data.agents) {
+                document.getElementById('stat-total-agents').textContent = data.agents.total;
+                document.getElementById('stat-active-agents').textContent = data.agents.active;
+                document.getElementById('stat-inactive-agents').textContent = data.agents.inactive;
+                document.getElementById('stat-pending-tasks').textContent = data.tasks.pending;
+                document.getElementById('stat-total-results').textContent = data.results.total;
+            }
+        }
+
+        async function listAgents() {
+            const data = await apiFetch('/admin/agents', 'GET', null, true);
+            const tbody = document.getElementById('agents-table-body');
+            tbody.innerHTML = '';
+            
+            if (data) {
+                document.getElementById('agents-count').textContent = 
+                    `Total Agents: ${data.count} | Active: ${data.active_count} | Inactive: ${data.inactive_count} | Timeout: ${data.timeout_minutes} minutes`;
+            }
+
+            if (data && data.agents && data.agents.length > 0) {
+                for (const agent of data.agents) {
+                    const row = tbody.insertRow();
+                    
+                    // Toggle button cell
+                    const toggleCell = row.insertCell();
+                    const toggleBtn = document.createElement('button');
+                    toggleBtn.textContent = '▶';
+                    toggleBtn.className = 'btn-small';
+                    toggleBtn.style.padding = '2px 8px';
+                    toggleBtn.id = `toggle-${agent.agent_id}`;
+                    toggleBtn.onclick = () => toggleAgentResults(agent.agent_id);
+                    toggleCell.appendChild(toggleBtn);
+                    
+                    row.insertCell().textContent = agent.agent_id;
+                    row.insertCell().textContent = agent.hostname;
+                    row.insertCell().textContent = agent.ip_address;
+                    row.insertCell().textContent = agent.os_info;
+                    row.insertCell().textContent = new Date(agent.last_seen).toLocaleString();
+                    
+                    // Time since last contact
+                    const timeSinceCell = row.insertCell();
+                    const timeText = formatTimeSince(agent.minutes_since_last_seen);
+                    const timeClass = agent.minutes_since_last_seen < 2 ? 'recent' : 
+                                     (agent.minutes_since_last_seen > 5 ? 'stale' : '');
+                    timeSinceCell.innerHTML = `<span class="time-indicator ${timeClass}">${timeText}</span>`;
+                    
+                    row.insertCell().innerHTML = renderStatusBadge(agent.status);
+                    
+                    // Action button
+                    const actionCell = row.insertCell();
+                    const button = document.createElement('button');
+                    button.textContent = '🚀 Trigger Scan';
+                    button.className = 'btn-success btn-small';
+                    button.onclick = () => triggerScan(agent.agent_id);
+                    if (agent.status === 'inactive') {
+                        button.title = 'Warning: Agent is currently inactive';
+                        button.style.opacity = '0.7';
+                    }
+                    actionCell.appendChild(button);
+                    
+                    // Create hidden row for results
+                    const resultsRow = tbody.insertRow();
+                    resultsRow.id = `results-${agent.agent_id}`;
+                    resultsRow.style.display = 'none';
+                    resultsRow.className = 'nested-results-row';
+                    const resultsCell = resultsRow.insertCell();
+                    resultsCell.colSpan = 9;
+                    resultsCell.innerHTML = `
+                        <div class="nested-results-container">
+                            <h3>Audit Results for ${agent.agent_id}</h3>
+                            <div id="results-content-${agent.agent_id}">
+                                <p class="no-results-msg">Click to load results...</p>
+                            </div>
+                        </div>
+                    `;
+                }
+            } else {
+                tbody.innerHTML = '<tr><td colspan="9">No registered agents found.</td></tr>';
+            }
+        }
+
+        async function toggleAgentResults(agentId) {
+            const resultsRow = document.getElementById(`results-${agentId}`);
+            const toggleBtn = document.getElementById(`toggle-${agentId}`);
+            const resultsContent = document.getElementById(`results-content-${agentId}`);
+            
+            if (resultsRow.style.display === 'none') {
+                // Show results and load them
+                resultsRow.style.display = 'table-row';
+                toggleBtn.textContent = '▼';
+                
+                // Load results for this agent
+                const data = await apiFetch(`/admin/agent/${agentId}/results`, 'GET', null, true);
+                
+                if (data && data.results && data.results.length > 0) {
+                    let html = `<p><strong>${data.count} result(s) found</strong></p>`;
+                    
+                    data.results.forEach((result, index) => {
+                        html += `
+                            <div class="result-item">
+                                <div class="result-header" onclick="toggleResultJson('${result.result_id}')">
+                                    <div>
+                                        <strong>Result:</strong> ${result.result_id} | 
+                                        <strong>Task:</strong> ${result.task_id} | 
+                                        <strong>Received:</strong> ${new Date(result.received_at).toLocaleString()}
+                                    </div>
+                                    <span class="toggle-icon" id="icon-${result.result_id}">▶</span>
+                                </div>
+                                <div class="result-body" id="json-${result.result_id}">
+                                    <pre class="json-viewer">${JSON.stringify(result.audit_results, null, 2)}</pre>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    
+                    resultsContent.innerHTML = html;
+                } else {
+                    resultsContent.innerHTML = '<p class="no-results-msg">No audit results found for this agent.</p>';
+                }
+            } else {
+                // Hide results
+                resultsRow.style.display = 'none';
+                toggleBtn.textContent = '▶';
+            }
+        }
+
+        function toggleResultJson(resultId) {
+            const jsonDiv = document.getElementById(`json-${resultId}`);
+            const icon = document.getElementById(`icon-${resultId}`);
+            
+            if (jsonDiv.classList.contains('expanded')) {
+                jsonDiv.classList.remove('expanded');
+                icon.classList.remove('expanded');
+            } else {
+                jsonDiv.classList.add('expanded');
+                icon.classList.add('expanded');
+            }
+        }
+
+        async function listTasks() {
+            const data = await apiFetch('/admin/tasks', 'GET', null, true);
+            const tbody = document.getElementById('tasks-table-body');
+            tbody.innerHTML = '';
+            document.getElementById('tasks-count').textContent = `Total Tasks: ${data ? data.count : 0}`;
+
+            if (data && data.tasks && data.tasks.length > 0) {
+                data.tasks.forEach(task => {
+                    const row = tbody.insertRow();
+                    row.insertCell().textContent = task.task_id;
+                    row.insertCell().textContent = task.agent_id;
+                    row.insertCell().innerHTML = renderStatusBadge(task.status);
+                    row.insertCell().textContent = new Date(task.created_at).toLocaleString();
+                    row.insertCell().textContent = task.started_at ? new Date(task.started_at).toLocaleString() : '-';
+                    row.insertCell().textContent = task.completed_at ? new Date(task.completed_at).toLocaleString() : '-';
+                });
+            } else {
+                tbody.innerHTML = '<tr><td colspan="6">No scan tasks found.</td></tr>';
+            }
+        }
+
+        async function listResults() {
+            // This function is no longer needed as results are shown under agents
+            // Kept for compatibility
+            return;
+        }
+
+        async function getResultDetail(resultId) {
+            // This function is no longer needed as results are shown inline
+            // Kept for compatibility
+            return;
+        }
+
+        async function refreshAllData() {
+            await loadStats();
+            await listAgents();
+            await listTasks();
+            displayMessage('msg-success', '🔄 All data refreshed successfully');
+        }
+
+        // --- Auto-refresh functionality ---
+        function startAutoRefresh() {
+            if (autoRefreshInterval) return;
+            
+            autoRefreshInterval = setInterval(async () => {
+                await loadStats();
+                await listAgents();
+                await listTasks();
+            }, AUTO_REFRESH_INTERVAL);
+            
+            document.getElementById('refresh-indicator').textContent = 'Auto-refresh: ON';
+            document.getElementById('refresh-indicator').classList.remove('disabled');
+        }
+
+        function stopAutoRefresh() {
+            if (autoRefreshInterval) {
+                clearInterval(autoRefreshInterval);
+                autoRefreshInterval = null;
+            }
+            
+            document.getElementById('refresh-indicator').textContent = 'Auto-refresh: OFF';
+            document.getElementById('refresh-indicator').classList.add('disabled');
+        }
+
+        function toggleAutoRefresh() {
+            if (autoRefreshInterval) {
+                stopAutoRefresh();
+                document.getElementById('auto-refresh-btn').textContent = '▶️ Resume Auto-Refresh';
+                displayMessage('msg-info', 'Auto-refresh paused');
+            } else {
+                startAutoRefresh();
+                document.getElementById('auto-refresh-btn').textContent = '⏸️ Pause Auto-Refresh';
+                displayMessage('msg-success', 'Auto-refresh resumed');
+            }
+        }
+
+        // --- Downloads Page Functions ---
+        
+        /**
+         * Format file size to human readable format
+         */
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+        }
+
+        /**
+         * Download a file using API endpoint
+         */
+        function downloadFile(folderType, fileName) {
+            const downloadUrl = `${BASE_URL}/files/download/${folderType}/${fileName}`;
+            const a = document.createElement('a');
+            a.href = downloadUrl;
+            a.download = fileName;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            displayMessage('msg-success', `Downloading: ${fileName}`);
+        }
+
+        /**
+         * Download entire folder as ZIP
+         */
+        function downloadFolderAsZip(folderType) {
+            const downloadUrl = `${BASE_URL}/files/download-zip/${folderType}`;
+            const folderName = folderType === 'linux' ? 'Linux Agent' : 'Windows Agent';
+            
+            displayMessage('msg-info', `Creating ZIP archive for ${folderName}...`);
+            
+            const a = document.createElement('a');
+            a.href = downloadUrl;
+            a.download = `${folderName.replace(' ', '_')}.zip`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            
+            setTimeout(() => {
+                displayMessage('msg-success', `Downloading ${folderName} as ZIP`);
+            }, 500);
+        }
+
+        /**
+         * Load files from directories using API
+         */
+        async function loadDownloadFiles() {
+            displayMessage('msg-info', 'Loading agent files...');
+            
+            try {
+                // Fetch Linux Agent files
+                const linuxData = await apiFetch('/files/list/linux', 'GET', null, true);
+                
+                // Fetch Windows Agent files
+                const windowsData = await apiFetch('/files/list/windows', 'GET', null, true);
+                
+                // Populate Linux Agent table
+                const linuxTable = document.getElementById('linux-files-table');
+                linuxTable.innerHTML = '';
+                
+                if (linuxData && linuxData.files && linuxData.files.length > 0) {
+                    linuxData.files.forEach(file => {
+                        const row = linuxTable.insertRow();
+                        row.insertCell().textContent = file.name;
+                        row.insertCell().textContent = formatFileSize(file.size);
+                        
+                        const actionCell = row.insertCell();
+                        const button = document.createElement('button');
+                        button.textContent = '⬇️ Download';
+                        button.className = 'btn-success btn-small';
+                        button.onclick = () => downloadFile('linux', file.name);
+                        actionCell.appendChild(button);
+                    });
+                } else {
+                    linuxTable.innerHTML = '<tr><td colspan="3">No files found. Make sure files exist in the "Linux Agent" folder.</td></tr>';
+                }
+                
+                // Populate Windows Agent table
+                const windowsTable = document.getElementById('windows-files-table');
+                windowsTable.innerHTML = '';
+                
+                if (windowsData && windowsData.files && windowsData.files.length > 0) {
+                    windowsData.files.forEach(file => {
+                        const row = windowsTable.insertRow();
+                        row.insertCell().textContent = file.name;
+                        row.insertCell().textContent = formatFileSize(file.size);
+                        
+                        const actionCell = row.insertCell();
+                        const button = document.createElement('button');
+                        button.textContent = '⬇️ Download';
+                        button.className = 'btn-success btn-small';
+                        button.onclick = () => downloadFile('windows', file.name);
+                        actionCell.appendChild(button);
+                    });
+                } else {
+                    windowsTable.innerHTML = '<tr><td colspan="3">No files found. Make sure files exist in the "Windows Agent" folder.</td></tr>';
+                }
+                
+                const totalFiles = (linuxData?.count || 0) + (windowsData?.count || 0);
+                if (totalFiles > 0) {
+                    displayMessage('msg-success', `Agent files loaded successfully (${totalFiles} files found)`);
+                } else {
+                    displayMessage('msg-error', 'No agent files found. Please check your folder structure.');
+                }
+            } catch (error) {
+                console.error('Error loading files:', error);
+                displayMessage('msg-error', 'Failed to load agent files. Check console for details.');
+            }
+        }
+
+        // Initial data load on page load
+        refreshAllData();
+        startAutoRefresh();
+        
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', () => {
+            stopAutoRefresh();
+        });
+    </script>
+</body>
+</html>

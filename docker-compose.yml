@@ -11,9 +11,6 @@ services:
     restart: unless-stopped
     environment:
       - PYTHONUNBUFFERED=1
-    volumes:
-      # Optional: Uncomment if you want to persist data
-      # - ./data:/app/data
     networks:
       - crypto-network
 

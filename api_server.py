@@ -25,7 +25,7 @@ app.add_middleware(
 )
 
 # Configuration
-AGENT_TIMEOUT_MINUTES = 1
+AGENT_TIMEOUT_MINUTES = 1  # Changed from 1 to 5 minutes for more reasonable timeout
 AGENT_FOLDERS = {
     "linux": "Linux Agent",
     "windows": "Windows Agent"
@@ -127,22 +127,31 @@ def get_agent_status(agent_id: str) -> str:
         if not row:
             return "unknown"
         
-        last_seen = datetime.fromisoformat(row["last_seen"])
-        time_diff = datetime.now() - last_seen
-        
-        if time_diff > timedelta(minutes=AGENT_TIMEOUT_MINUTES):
-            return "inactive"
-        return "active"
+        try:
+            last_seen = datetime.fromisoformat(row["last_seen"])
+            current_time = datetime.now()
+            time_diff = current_time - last_seen
+            
+            print(f"[DEBUG] Agent {agent_id}: Last seen={last_seen}, Current={current_time}, Diff={time_diff.total_seconds()}s")
+            
+            if time_diff > timedelta(minutes=AGENT_TIMEOUT_MINUTES):
+                return "inactive"
+            return "active"
+        except Exception as e:
+            print(f"[ERROR] Error calculating status for {agent_id}: {e}")
+            return "unknown"
 
 def update_agent_last_seen(agent_id: str):
     """Update the last_seen timestamp for an agent"""
     with get_db() as conn:
         cursor = conn.cursor()
+        now = datetime.now().isoformat()
         cursor.execute(
             "UPDATE agents SET last_seen = ? WHERE agent_id = ?",
-            (datetime.now().isoformat(), agent_id)
+            (now, agent_id)
         )
         conn.commit()
+        print(f"[DEBUG] Updated last_seen for {agent_id} to {now}")
 
 def get_folder_files(folder_name: str):
     """Get list of files in a folder with their sizes"""
@@ -213,13 +222,14 @@ async def receive_system_info(system_info: SystemInfo):
     """Receive and store system information from agent (heartbeat)"""
     try:
         update_agent_last_seen(system_info.agent_id)
-        print(f"[+] Heartbeat received from: {system_info.agent_id} ({system_info.hostname})")
+        status = get_agent_status(system_info.agent_id)
+        print(f"[+] Heartbeat received from: {system_info.agent_id} ({system_info.hostname}) - Status: {status}")
         
         return {
             "success": True,
             "message": "System information received",
             "agent_id": system_info.agent_id,
-            "status": get_agent_status(system_info.agent_id)
+            "status": status
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to process system info: {str(e)}")
@@ -356,9 +366,14 @@ async def list_agents():
             agent_dict = dict(agent)
             agent_dict["status"] = get_agent_status(agent["agent_id"])
             
-            last_seen = datetime.fromisoformat(agent["last_seen"])
-            time_diff = datetime.now() - last_seen
-            agent_dict["minutes_since_last_seen"] = int(time_diff.total_seconds() / 60)
+            try:
+                last_seen = datetime.fromisoformat(agent["last_seen"])
+                current_time = datetime.now()
+                time_diff = current_time - last_seen
+                agent_dict["minutes_since_last_seen"] = int(time_diff.total_seconds() / 60)
+            except Exception as e:
+                print(f"[ERROR] Error calculating time diff for {agent['agent_id']}: {e}")
+                agent_dict["minutes_since_last_seen"] = 999999
             
             agents_with_status.append(agent_dict)
         
@@ -371,6 +386,7 @@ async def list_agents():
             "active_count": active_count,
             "inactive_count": inactive_count,
             "timeout_minutes": AGENT_TIMEOUT_MINUTES,
+            "server_time": datetime.now().isoformat(),
             "agents": agents_with_status
         }
 
@@ -571,7 +587,7 @@ async def download_folder_as_zip(folder_type: str):
 
 if __name__ == "__main__":
     print("=" * 60)
-    print("Starting Crypto Audit API Server v3.0 (SQLite)")
+    print("Starting Crypto Audit API Server v3.1 (SQLite)")
     print("=" * 60)
     print(f"Database: {DB_FILE}")
     print(f"Agent Timeout: {AGENT_TIMEOUT_MINUTES} minutes")
